@@ -1,15 +1,14 @@
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -20,7 +19,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-public class ByteClientGUI extends JFrame {
+public class MsgClientGUI extends JFrame {
 
 	private JTextField t_input;
 	private JTextArea t_display;
@@ -31,11 +30,11 @@ public class ByteClientGUI extends JFrame {
 	private String serverAddress;
 	private int serverPort;
 	private Socket socket;
-	private BufferedWriter out;
+	private Writer out; //최상위 문자 스트림 클래스 Writer 타입 객체 out
 	private boolean Connected = false; // 서버와의 연결 상태를 나타내는 논리변수
 
-	public ByteClientGUI(String serverAddress, int serverPort) {
-		super("ByteClient GUI");
+	public MsgClientGUI(String serverAddress, int serverPort) {
+		super("MsgClient GUI");
 
 		this.serverAddress = serverAddress;
 		this.serverPort = serverPort;
@@ -52,7 +51,9 @@ public class ByteClientGUI extends JFrame {
 
 		try {
 			socket = new Socket(serverAddress, serverPort);
-			out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));  
+			out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF-8")); 
+			// 소켓으로부터 얻은 바이트 스트림을 -> OutputStreamWriter를 통해 문자 스트림으로 변환하고 -> 그것을 BufferedWriter 와 연결하여, 데이터흐름을 버퍼링해서 조절할 수 있도록 출력 스트림 생성.(긴 문자열이더라도 버퍼를통해 효율적으로 송신하기위함-입출력 최소화&입출력 속도향상) 
+			//바이트 스트림을 문자 스트림으로 변환할때 2번째 매개변수로, 문자set을 UTF-8로 설정해서 유니코드형식의 인코딩방법을 사용할 수 있도록 지정.
 			Connected = true;
 			// 접속하기 버튼 클릭후 => 보내기버튼 활성화, 접속하기버튼 비활성화, 종료하기버튼 비활성화, 접속끊기버튼 활성화.
 			b_send.setEnabled(true);
@@ -60,10 +61,11 @@ public class ByteClientGUI extends JFrame {
 			b_exit.setEnabled(false);
 			b_disconnect.setEnabled(true);
 
-		} catch (IOException e) {
-			System.out.println("클라이언트 접속 오류> " + e.getMessage());
-			// System.exit(-1);
-
+		} catch (UnknownHostException e) { // 소켓 객체가 제대로 생성되지 못했다거나, 해당 host를 제대로 찾지못했을때 
+			System.err.println("알 수 없는 서버> " + e.getMessage());
+		} 
+		catch (IOException e) { // 서버 와의 연결 및 입출력 작업에 문제발생시.
+			System.err.println("클라이언트 연결 오류> " + e.getMessage());
 		}
 
 	}
@@ -73,7 +75,8 @@ public class ByteClientGUI extends JFrame {
 	public void disconnect() {
 
 		try {
-			socket.close();// out.close()??
+			out.close();
+			socket.close();
 			Connected = false;
 			// 접속 끊기버튼 클릭하여 클라이언트 소켓 종료 후 => 보내기버튼 비활성화, 접속하기버튼 활성화, 종료하기버튼 활성화, 접속끊기버튼
 			// 비활성화.
@@ -83,11 +86,10 @@ public class ByteClientGUI extends JFrame {
 			b_disconnect.setEnabled(false);
 
 		} catch (IOException e) {
-
-			System.out.println("클라이언트 닫기 오류> " + e.getMessage());
-			// System.exit(-1);
+			System.err.println("클라이언트 닫기 오류> " + e.getMessage());
+			System.exit(-1);
 		}
-		// System.exit(0);
+	
 
 	}
 
@@ -99,22 +101,19 @@ public class ByteClientGUI extends JFrame {
 
 		String msg = t_input.getText();
 
-		if (msg.equals(""))// if(msg.isEmpty())
+		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
 			return;
 
 		try {
-			out.write(msg+"\n");//문자열 출력. 서버에서는 readLine()을 통해 개행문자까지를 한 문자열로 인식하기떄문에, 문자 출력 버퍼 스트림에 개행문자 포함해서 출력.
-
-			out.flush(); //  버퍼에 있는 데이터를 강제로 출력-스트림 버퍼 비우기, 데이터 즉시 전송
-		}
-
-		catch (NumberFormatException e) {// 문자 -> 정수로 변환하는 과정에서, 정수가 아닌 문자들이 입력된경우 발생하는 NumberFormatException 예외처리.
-			System.out.println("클라이언트 쓰기 오류(정수만 입력하세요)> " + e.getMessage());
-			// System.exit(-1);
+			((BufferedWriter)out).write(msg+"\n");// 최상위 Writer 타입에서, 실제로 사용하고자하는 BufferedWriter 클래스 타입으로 다운캐스팅.
+			//BufferedWriter는 내부적으로 데이터를 임시로 저장할 수 있는 버퍼를 사용.
+			//기존에는 정수로 변환하였지만, BufferedWriter 문자 스트림(바이트 대신 문자 처리) 객체이므로 하나의 문자열을 온전하게 전달가능함. 행단위의 전송을 위해서 개행문자를 추가. 서버측에서 행단위로 수신받기때문(개행문자까지를 하나의 행으로 구분함) 
+			out.flush(); // BufferedWriter는 버퍼링을 사용하는 버퍼+문자스트림 이기때문에 버퍼가 가득차지않더라도 출력하기위해 flush. 스트림 버퍼 비우기, 데이터 즉시 전송.
+			//이 버퍼가 가득 차기 전까지는 실제로 데이터를 출력 스트림으로 전송하지 않음. so, 한 문자열을 제대로 전송하기위해 가득차지않더라도 flush를 통해 출력시킴.
+		
 		} catch (IOException e) {
-
-			System.out.println("클라이언트 쓰기 오류> " + e.getMessage());
-			// System.exit(-1);
+			System.out.println("클라이언트 일반 전송 오류> " + e.getMessage());
+			
 		} finally {
 			t_display.append("나: " + msg + "\n"); // 전송된 내용을 t_display에 표시
 			t_input.setText("");
@@ -149,7 +148,7 @@ public class ByteClientGUI extends JFrame {
 	// input 패널
 	private JPanel createInputPanel() {
 		JPanel inputPanel = new JPanel(new BorderLayout());
-		t_input = new JTextField();
+		t_input = new JTextField(30);
 		b_send = new JButton("보내기");
 		b_send.setEnabled(false);
 
@@ -224,7 +223,7 @@ public class ByteClientGUI extends JFrame {
 		String serverAddress = "localhost"; // 연결하고자하는 서버의 주소는 로컬호스트. 즉, 내 컴퓨터.
 		int serverPort = 54321;
 
-		ByteClientGUI client = new ByteClientGUI(serverAddress, serverPort);
+		MsgClientGUI client = new MsgClientGUI(serverAddress, serverPort);
 	}
 
 }
