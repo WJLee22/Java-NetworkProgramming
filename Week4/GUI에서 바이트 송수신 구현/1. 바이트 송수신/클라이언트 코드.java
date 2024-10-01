@@ -50,7 +50,7 @@ public class ByteClientGUI extends JFrame {
 
 		try {
 			socket = new Socket(serverAddress, serverPort);
-			out = socket.getOutputStream();
+			out = socket.getOutputStream(); // 바이트 단위로 서버에게 데이터를 보내는, 바이트 출력 스트림 반환.
 			Connected = true;
 			// 접속하기 버튼 클릭후 => 보내기버튼 활성화, 접속하기버튼 비활성화, 종료하기버튼 비활성화, 접속끊기버튼 활성화.
 			b_send.setEnabled(true);
@@ -58,10 +58,11 @@ public class ByteClientGUI extends JFrame {
 			b_exit.setEnabled(false);
 			b_disconnect.setEnabled(true);
 
-		} catch (IOException e) {
-			System.out.println("클라이언트 접속 오류> " + e.getMessage());
-			// System.exit(-1);
-
+		} catch (UnknownHostException e) { // 소켓 객체가 제대로 생성되지 못했다거나, 해당 host를 제대로 찾지못했을때 
+			System.err.println("알 수 없는 서버> " + e.getMessage());
+		} 
+		catch (IOException e) { // 서버 와의 연결 및 입출력 작업에 문제발생시.
+			System.err.println("클라이언트 연결 오류> " + e.getMessage());
 		}
 
 	}
@@ -71,7 +72,8 @@ public class ByteClientGUI extends JFrame {
 	public void disconnect() {
 
 		try {
-			socket.close();// out.close()??
+			out.close();
+			socket.close();
 			Connected = false;
 			// 접속 끊기버튼 클릭하여 클라이언트 소켓 종료 후 => 보내기버튼 비활성화, 접속하기버튼 활성화, 종료하기버튼 활성화, 접속끊기버튼
 			// 비활성화.
@@ -81,11 +83,10 @@ public class ByteClientGUI extends JFrame {
 			b_disconnect.setEnabled(false);
 
 		} catch (IOException e) {
-
-			System.out.println("클라이언트 닫기 오류> " + e.getMessage());
-			// System.exit(-1);
+			System.err.println("클라이언트 닫기 오류> " + e.getMessage());
+			System.exit(-1);
 		}
-		// System.exit(0);
+	
 
 	}
 
@@ -97,7 +98,7 @@ public class ByteClientGUI extends JFrame {
 
 		String msg = t_input.getText();
 
-		if (msg.equals(""))// if(msg.isEmpty())
+		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
 			return;
 
 		try {
@@ -109,12 +110,12 @@ public class ByteClientGUI extends JFrame {
 		}
 
 		catch (NumberFormatException e) {// 문자 -> 정수로 변환하는 과정에서, 정수가 아닌 문자들이 입력된경우 발생하는 NumberFormatException 예외처리.
-			System.out.println("클라이언트 쓰기 오류(정수만 입력하세요)> " + e.getMessage());
-			// System.exit(-1);
+			t_input.setText("");
+			System.err.println("클라이언트 쓰기 오류(숫자만 입력할 수 있습니다)> " + e.getMessage());
+			return;
 		} catch (IOException e) {
-
-			System.out.println("클라이언트 쓰기 오류> " + e.getMessage());
-			// System.exit(-1);
+			System.out.println("클라이언트 일반 전송 오류> " + e.getMessage());
+			
 		} finally {
 			t_display.append("나: " + msg + "\n"); // 전송된 내용을 t_display에 표시
 			t_input.setText("");
@@ -149,7 +150,7 @@ public class ByteClientGUI extends JFrame {
 	// input 패널
 	private JPanel createInputPanel() {
 		JPanel inputPanel = new JPanel(new BorderLayout());
-		t_input = new JTextField();
+		t_input = new JTextField(30);
 		b_send = new JButton("보내기");
 		b_send.setEnabled(false);
 
@@ -228,4 +229,3 @@ public class ByteClientGUI extends JFrame {
 	}
 
 }
-
