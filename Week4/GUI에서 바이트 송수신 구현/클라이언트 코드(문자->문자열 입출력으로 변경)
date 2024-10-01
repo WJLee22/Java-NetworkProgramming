@@ -103,11 +103,9 @@ public class ByteClientGUI extends JFrame {
 			return;
 
 		try {
-			out.write(msg+"\n");// 텍스트필드에 입력된 문자들(정수)을 정수형으로 변환하여 출력스트림을 통해 서버측 소켓으로 보내기.
-			// out객체는 OutputStream(바이트스트림객체)객체로, 정수형 데이터를 전송할 경우엔 온전한 데이터가 아니라 오직 1바이트로
-			// 표현가능한 0~255까지의 정수만 전송가능.
-			// 256입력시 0출력됨
-			out.flush(); // 스트림 버퍼 비우기, 데이터 즉시 전송
+			out.write(msg+"\n");//문자열 출력. 서버에서는 readLine()을 통해 개행문자까지를 한 문자열로 인식하기떄문에, 문자 출력 버퍼 스트림에 개행문자 포함해서 출력.
+
+			out.flush(); //  버퍼에 있는 데이터를 강제로 출력-스트림 버퍼 비우기, 데이터 즉시 전송
 		}
 
 		catch (NumberFormatException e) {// 문자 -> 정수로 변환하는 과정에서, 정수가 아닌 문자들이 입력된경우 발생하는 NumberFormatException 예외처리.
