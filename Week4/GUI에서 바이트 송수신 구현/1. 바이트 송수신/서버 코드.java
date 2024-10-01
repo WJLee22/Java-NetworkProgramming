@@ -16,7 +16,7 @@ import javax.swing.JTextArea;
 public class ByteServerGUI extends JFrame {
 
 	private int port;
-	private ServerSocket serverSocket;
+	private ServerSocket serverSocket=null;
 	private JTextArea t_display;
 
 	public ByteServerGUI(int port) {
@@ -42,13 +42,21 @@ public class ByteServerGUI extends JFrame {
 			while (true) {
 				clientSocket = serverSocket.accept(); // 클라이언트측 소켓이 이 서버소켓에게 연결 요청을 보냈고 -> 이를 서버소켓이 수락하면서 해당 클라이언트측 소켓과
 														// 연결할 별도의 소켓을 생성-반환.
-				t_display.append("클라이언트가 연결되었습니다.\n");
+				printDisplay("클라이언트가 연결되었습니다.");
 
-				receiveMessages(clientSocket);// 생성한 클라이언트 소켓이 연결된 클라이언트측 소켓으로부터 지속적으로 데이터를 전달받아서 처리하도록 지시.
+				//receiveMessages(clientSocket);// 생성한 클라이언트 소켓이 연결된 클라이언트측 소켓으로부터 지속적으로 데이터를 전달받아서 처리하도록 지시.
+				
+				//그러나 main 스레드만으로(즉, 단일 스레드 환경에서는) 하나의 클라이언트 소켓이 receiveMessages를 통해 클라이언트측과 통신하는 동안에는, 또 다른 클라이언트들로부터 연결 요청을 accept 할 수가 없다.   
+				// 즉, 이 클라이언트 소켓이 통신을 모두 끝마쳐야만 연결 요청을 한 다음 클라이언트와 통신이 가능하다는 한계가 존재한다.
+				// so, accept 되어 생성된 클라이언트 소켓이 클라이언트측과 통신하는 동작인 receiveMessages를 추가적인 작업 스레드에서 진행하도록 변경하여,   
+				// 서버가 동시에 여러 클라이언트로부터 통신이 가능해지도록 변경구현.
+			
+				ClientHandler cHandler= new ClientHandler(clientSocket);
+				cHandler.start(); //작업 스레드 구동.(내부적으로 receiveMessages 동작실행)
 			}
 
 		} catch (IOException e) {
-			System.err.println("서버 소켓 종료: " + e.getMessage());
+			System.err.println("서버 소켓 종료: " + e.getMessage()); //서버 소켓 생성중, 해당 포트가 이미 사용중이어서 소켓 생성이 불가한경우 예외처리.=> 근데 왜 종료버튼 누르면 이게 출력되지??
 			System.exit(0);
 		} finally {
 			try {
@@ -77,10 +85,10 @@ public class ByteServerGUI extends JFrame {
 	// 클라이언트측으로부터 지속적으로 데이터를 전달받는 메서드
 	private void receiveMessages(Socket cSocket) {
 
-		InputStream in;
+		InputStream in=null;
 
 		try {
-			in = cSocket.getInputStream();
+			in = cSocket.getInputStream(); //바이트 입력 스트림 반환.
 			int message;
 			// 이 while문의 조건식: in.read()의 결과를 message에 저장하고, 그 결과가 -1이 아닌지를 동시에 확인.
 			while ((message = in.read()) != -1) {// 클라이언트가 데이터를 모두 전송한 후 소켓 연결을 종료하면, 서버 측에서 in.read() 호출이 -1을 반환한다. so,
@@ -90,19 +98,20 @@ public class ByteServerGUI extends JFrame {
 													// 처리해야하므로.
 				printDisplay("클라이언트 메시지: " + message);
 			}
-			t_display.append("클라이언트가 연결을 종료했습니다.\n");
+			printDisplay("클라이언트가 연결을 종료했습니다.");
 
 		} catch (IOException e) {
 			System.err.println("서버 읽기 오류> " + e.getMessage());
-			// System.exit(-1);
+	
 		} finally {
 
 			try {
+				if(in != null) in.close();
 				cSocket.close(); // 클라이언트측 소켓이 연결을 끊었으니, 이제 이 서버측 클라이언트 소켓은 쓸모가없어짐 -> so, 닫아준다.
 			} catch (IOException e) {
 
 				System.err.println("서버 읽기 오류> " + e.getMessage());
-				// System.exit(-1);
+				System.exit(-1);
 
 			}
 		}
@@ -140,7 +149,7 @@ public class ByteServerGUI extends JFrame {
 			public void actionPerformed(ActionEvent e) {// 종료버튼이 눌려지면 서버소켓을 닫아준다. 이로써 프로그램 종료.
 				try {
 					serverSocket.close();
-					System.exit(0);
+					System.exit(-1);
 				} catch (IOException e1) {
 					System.err.println("서버닫기 오류> " + e1.getMessage());
 					// System.exit(-1);
@@ -153,10 +162,27 @@ public class ByteServerGUI extends JFrame {
 		return controlPanel;
 	}
 
+	
+	//클라이언트와 통신하는 작업을 별도의 작업 스레드에서 처리하도록하자.
+	private class ClientHandler extends Thread{
+		private Socket clientSocket; //클라이언트와 통신하는 주체인 클라이언트 소켓
+		
+		public ClientHandler(Socket clientSocket) {
+			this.clientSocket=clientSocket; //작업 스레드 생성시, 매개변수 값으로 클라이언트 소켓 넘겨받음.
+		}
+
+		@Override
+		public void run() { //작업 스레드 실행 -> 작업 스레드를 통해 클라이언트와 통신 시작. (여러 작업 스레드: 동시에 여러 클라이언트와 통신이 가능해짐) 
+			receiveMessages(clientSocket);
+		}
+		
+		
+	}
+	
+	
 	public static void main(String[] args) {
 		ByteServerGUI server = new ByteServerGUI(54321);
 		server.startServer(); // 서버소켓 생성하면서 서버시작.
 	}
 
 }
-
