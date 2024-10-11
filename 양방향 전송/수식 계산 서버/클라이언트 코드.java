@@ -6,10 +6,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -28,23 +31,23 @@ import javax.swing.JTextField;
 
 public class CalcClientGUI extends JFrame {
 
-	private JTextField t_operand1;
-	private JTextField t_operator;
-	private JTextField t_operand2;
-	private JLabel l_equal;
-	private JTextField t_result;
-	private JButton b_calc;
-	
-	private JTextArea t_display;
-	private JButton b_connect;
-	private JButton b_disconnect;
+	private JTextField t_operand1; 
+	private JTextField t_operator; 
+	private JTextField t_operand2; 
+	private JLabel l_equal; 
+	private JTextField t_result; 
+	private JButton b_calc; 
 
-	private JButton b_exit;
-	private String serverAddress;
-	private int serverPort;
-	private Socket socket;
-	private Writer out; 
-	private Reader in; 
+	private JButton b_connect; 
+	private JButton b_disconnect; 
+	private JButton b_exit; 
+	
+	private String serverAddress; 
+	private int serverPort; 
+	private Socket socket; 
+	
+	private ObjectOutputStream out; 
+	private DataInputStream in; 
 	private boolean Connected = false; 
 
 	public CalcClientGUI(String serverAddress, int serverPort) {
@@ -64,11 +67,10 @@ public class CalcClientGUI extends JFrame {
 
 		try {
 			socket = new Socket(serverAddress, serverPort);
-			out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF-8")); 
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
+			out = new ObjectOutputStream(socket.getOutputStream()); 
+			in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 			
 			Connected = true;
-
 
 		} catch (UnknownHostException e) { 
 			System.err.println("알 수 없는 서버> " + e.getMessage());
@@ -84,7 +86,8 @@ public class CalcClientGUI extends JFrame {
 	private void disconnect() {
 
 		try {
-			out.close();
+			in.close();		
+			out.close();			
 			socket.close();
 			Connected = false;
 
@@ -92,13 +95,11 @@ public class CalcClientGUI extends JFrame {
 			b_connect.setEnabled(true);
 			b_exit.setEnabled(true);
 			b_disconnect.setEnabled(false);
-
+			
 		} catch (IOException e) {
 			System.err.println("클라이언트 닫기 오류> " + e.getMessage());
 			System.exit(-1);
 		}
-	
-
 	}
 
 	private void sendMesssage() {
@@ -106,7 +107,7 @@ public class CalcClientGUI extends JFrame {
 		if (!Connected)
 			return; 
 
-		String msg = t_input.getText();
+		CalcExpr msg = new CalcExpr(Double.parseDouble(t_operand1.getText()), t_operand1.getText().charAt(0), Double.parseDouble(t_operand2.getText()));
 
 		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
 			return;
