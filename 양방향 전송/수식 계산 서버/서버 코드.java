@@ -1,17 +1,12 @@
-
+//2071449 이원준
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -122,9 +117,11 @@ public class CalcServerGUI extends JFrame {
 					double result=0;
 					try {
 					result=caculate(message); // 수식 계산 결과값
-					}catch (IllegalArgumentException e) { // 잘못된 인자 전달 예외처리
+					}catch (IllegalArgumentException e) { // 잘못된 인자(연산자) 전달 예외처리
 						System.err.println("연산자가 올바르지 않습니다> " + e.getMessage());
-						
+						out.writeDouble(Double.NaN); //숫자가 아닌값인 NaN을 에러 코드로 사용. 올바르지않은 연산자 입력을 클라이언트에게 알림.
+						out.flush(); 
+						continue;
 					}
 					printDisplay(message.operand1+" "+message.operator+" "+ message.operand2+" = "+result);
 					out.writeDouble(result); // 클라이언트에게 수신받은 데이터를 가공해서, 다시 클라이언트에게 반향.
