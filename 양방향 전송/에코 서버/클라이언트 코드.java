@@ -113,6 +113,11 @@ public class EchoClientGUI extends JFrame {
 		
 			t_display.append("나: " + msg + "\n"); 
 			t_input.setText("");
+			
+			receiveMessage(); // 출력데이터 없이 보내기버튼 클릭시, readLine이 서버로부터 데이터를 수신할 때까지 무한 대기상태에 빠지게되는 문제 해결을 위해 
+							 // sendMesssage 내부에서 receiveMessage 호출하도록 수정.
+							// 기존 코드의 경우, 텍스트입력없어서 return 되더라도 반환후 receiveMessage을 호출하는 로직이었기에, 서버는 당연히 데이터 값을 전달받지못했고
+							// 그에 따라 클라이언트도 서버로부터 반향받지 못하는 것인데, receiveMessage에서 readLine은 입력값 받을떄까지 무한정 대기하게되는 심각한 오류 발생하게됨.
 	}
 	
 	//클라이언트가 서버에게 메시지를 보내고나서, 서버가 나에게 반향하는 메시지를 수신.
@@ -168,7 +173,7 @@ public class EchoClientGUI extends JFrame {
 			public void keyPressed(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 					sendMesssage();// 텍스트필드에 엔터 입력시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-					receiveMessage();
+					
 				}
 			}
 
@@ -180,7 +185,7 @@ public class EchoClientGUI extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 
 				sendMesssage();// 보내기 버튼 클릭시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-				receiveMessage();
+				
 			}
 		});
 
