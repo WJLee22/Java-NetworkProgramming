@@ -1,4 +1,4 @@
-
+//2071449 이원준
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -120,7 +120,10 @@ public class CalcClientGUI extends JFrame {
 		
 		try {
 			Double inMsg=in.readDouble();// 서버로부터 수식결과 전달받음.
-			t_result.setText(String.format("%.2f", inMsg)); //수식결과값을 소수점 2째자리까지 반올림해서 출력.
+			if(!Double.isNaN(inMsg)) // inMsg값이 NaN값이 아닌 경우, 즉 올바르게 연산자를 입력한 경우
+				t_result.setText(String.format("%.2f", inMsg)); //수식결과값을 소수점 2째자리까지 반올림해서 출력.
+			else // inMsg값이 NaN값이라면 올바르지않은 연산자를 입력했던 것. 
+				t_result.setText("연산자err");
 		} catch (IOException e) {
 			System.err.println("클라이언트 일반 수신 오류> " + e.getMessage());
 			System.exit(-1);
