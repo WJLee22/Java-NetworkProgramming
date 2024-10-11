@@ -4,29 +4,18 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.Writer;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 public class CalcClientGUI extends JFrame {
@@ -37,6 +26,7 @@ public class CalcClientGUI extends JFrame {
 	private JLabel l_equal; 
 	private JTextField t_result; 
 	private JButton b_calc; 
+	private JButton b_clean; 
 
 	private JButton b_connect; 
 	private JButton b_disconnect; 
@@ -48,7 +38,7 @@ public class CalcClientGUI extends JFrame {
 	
 	private ObjectOutputStream out; 
 	private DataInputStream in; 
-	private boolean Connected = false; 
+	
 
 	public CalcClientGUI(String serverAddress, int serverPort) {
 		super("CalcClient GUI");
@@ -67,11 +57,9 @@ public class CalcClientGUI extends JFrame {
 
 		try {
 			socket = new Socket(serverAddress, serverPort);
-			out = new ObjectOutputStream(socket.getOutputStream()); 
+			out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream())); 
 			in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 			
-			Connected = true;
-
 		} catch (UnknownHostException e) { 
 			System.err.println("알 수 없는 서버> " + e.getMessage());
 		} 
@@ -89,9 +77,13 @@ public class CalcClientGUI extends JFrame {
 			in.close();		
 			out.close();			
 			socket.close();
-			Connected = false;
-
+		
+			t_operand1.setEnabled(false);
+			t_operator.setEnabled(false);
+			t_operand2.setEnabled(false);
 			b_calc.setEnabled(false);
+			b_clean.setEnabled(false);
+			
 			b_connect.setEnabled(true);
 			b_exit.setEnabled(true);
 			b_disconnect.setEnabled(false);
@@ -103,34 +95,32 @@ public class CalcClientGUI extends JFrame {
 	}
 
 	private void sendMesssage() {
-
-		if (!Connected)
-			return; 
-
-		CalcExpr msg = new CalcExpr(Double.parseDouble(t_operand1.getText()), t_operand1.getText().charAt(0), Double.parseDouble(t_operand2.getText()));
-
-		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
+		
+		String op1=t_operand1.getText();
+		String operator=t_operator.getText();
+		String op2=t_operand2.getText();
+		
+		if (op1.equals("") || operator.equals("") || op2.equals(""))// 피연산자 및 연산자 입력칸에 아무것도 입력하지않고 보내려고한다면 그냥 return.
 			return;
 
-		
+		CalcExpr msg = new CalcExpr(Double.parseDouble(op1), operator.charAt(0), Double.parseDouble(op2));
+
 			try {
-				((BufferedWriter)out).write(msg+"\n");
+				out.writeObject(msg);
 				out.flush();
 			} catch (IOException e) {
 				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
 				System.exit(-1);
 			} 
-		
-			t_display.append("나: " + msg + "\n"); 
-			t_input.setText("");
+			receiveMessage();
 	}
 	
 	//클라이언트가 서버에게 메시지를 보내고나서, 서버가 나에게 반향하는 메시지를 수신.
 	private void receiveMessage() {
 		
 		try {
-			String inMsg=((BufferedReader)in).readLine();
-			t_display.append("서버:\t"+inMsg+"\n");
+			Double inMsg=in.readDouble();// 서버로부터 수식결과 전달받음.
+			t_result.setText(String.format("%.2f", inMsg)); //수식결과값을 소수점 2째자리까지 반올림해서 출력.
 		} catch (IOException e) {
 			System.err.println("클라이언트 일반 수신 오류> " + e.getMessage());
 			System.exit(-1);
@@ -143,48 +133,59 @@ public class CalcClientGUI extends JFrame {
 		
 		JPanel calcPanel = createCalcPanel();
 		JPanel controlPanel = createControlPanel();
-		int topMargin = 10;	
-		calcPanel.setBorder(BorderFactory.createEmptyBorder(topMargin, 0, 0, 0)); // 패널에 topMargin 부여
+		JPanel cleanPanel = createCleanPanel();
 		add(calcPanel, BorderLayout.NORTH);
+		add(cleanPanel, BorderLayout.CENTER);
 		add(controlPanel, BorderLayout.SOUTH);
 	}
 
 
 	// 수식 패널
 	private JPanel createCalcPanel() {
-		JPanel calcPanel = new JPanel(new FlowLayout());
-		t_operand1 = new JTextField(5);
-		t_operator = new JTextField(3);
-		t_operand2 = new JTextField(5);
-		l_equal = new JLabel("=");
-		t_result   = new JTextField(5);
-		b_calc = new JButton("계산");
+		JPanel calcPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		t_operand1 = new JTextField(5); //피연산자 1 텍스트필드
+		t_operator = new JTextField(3); //연산자 텍스트필드
+		t_operand2 = new JTextField(5); //피연산자 1 텍스트필드
+		l_equal = new JLabel("="); // = 레이블
+		t_result   = new JTextField(5); // 수식 계산 결과창 텍스트필드
+		b_calc = new JButton("계산"); //계산 버튼
+		b_clean = new JButton("지우기"); //지우기 버튼
+			
+		t_operand1.setEnabled(false);
+		t_operand1.setHorizontalAlignment(JTextField.RIGHT); //텍스트 필드의 텍스트를 우측 정렬.
 		
-		b_calc.setEnabled(false);
-		t_result.setEnabled(false);
-
-//		t_input.addKeyListener(new KeyAdapter() {
-//
-//			@Override
-//			public void keyPressed(KeyEvent e) {
-//				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-//					sendMesssage();// 텍스트필드에 엔터 입력시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-//					receiveMessage();
-//				}
-//			}
-//
-//		});
-
+		t_operator.setEnabled(false); 
+		t_operator.setHorizontalAlignment(JTextField.CENTER);
+		
+		t_operand2.setEnabled(false); 
+		t_operand2.setHorizontalAlignment(JTextField.RIGHT);
+		
+		t_result.setEditable(false); //결과창은 수정불가하도록 설정.
+		t_result.setHorizontalAlignment(JTextField.RIGHT);
+		
+		b_calc.setEnabled(false); //서버에 접속하기 전까지는 계산버튼 클릭불가.
 		b_calc.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
 
 				sendMesssage();// 계산 버튼 클릭시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-				receiveMessage();
+				
 			}
 		});
 		
+		b_clean.setEnabled(false);
+		b_clean.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				t_operand1.setText("");
+				t_operator.setText("");
+				t_operand2.setText("");
+				t_result.setText("");
+			}
+		});
+			
 		calcPanel.add(t_operand1);
 		calcPanel.add(t_operator);
 		calcPanel.add(t_operand2);
@@ -193,6 +194,13 @@ public class CalcClientGUI extends JFrame {
 		calcPanel.add(b_calc);
 
 		return calcPanel;
+	}
+	
+	private JPanel createCleanPanel() {
+		JPanel cleanPanel = new JPanel(new FlowLayout());
+		cleanPanel.add(b_clean);
+		
+		return cleanPanel;
 	}
 
 	// control 패널
@@ -207,7 +215,13 @@ public class CalcClientGUI extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+
+				t_operand1.setEnabled(true);
+				t_operator.setEnabled(true);				
+				t_operand2.setEnabled(true);				
 				b_calc.setEnabled(true);
+				b_clean.setEnabled(true);
+				
 				b_connect.setEnabled(false);
 				b_exit.setEnabled(false);
 				b_disconnect.setEnabled(true);
