@@ -3,11 +3,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -186,12 +187,14 @@ public class ScoreServerGUI extends JFrame {
 
 		ScoreManager(String fileName) {
 			try {
-				Scanner reader = new Scanner(new FileReader(fileName));// FileReader는 지정된 파일을 읽어들이는 클래스. Scanner는
+				Scanner reader = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(fileName),"UTF-8")));// FileReader는 지정된 파일을 읽어들이는 클래스. Scanner는
 																		// FileReader를 감싸서 파일에서 데이터를 읽을 수 있게 해줌.
-				// !!!! Windows 환경에서 txt 파일의 기본 인코딩형식은 UTF-8.
-				// 다만, 현재 우리가 작성한 FileReader만으로는 UTF-8 타입으로 인코딩된 문서를 읽어들일 수 없는 문제가있음.
-				// 따라서, 한시적으로 ANSI 타입으로 인코딩하여 저장해야함.
-				// 인줄 알았으나, txt파일을 UTF-8 형식으로 인코딩해도 잘 인식한다?!
+				// !!!! Windows 환경에서 UTF-8 로 인코딩되어진 txt파일을 처리하고자한다면 
+				// 단순히 FileReader 만 쓰면안되고, 위처럼 FileInputStream을 InputStreamReader과 연결하여 파일로부터 읽은 바이트 데이터를 -> 문자스트림으로 변환할때 
+				//"UTF-8" 인코딩 타입으로 지정하여, UTF-8 형식의 txt 파일 입력받을 수 있도록처리.
+				//읽어들인 바이트를 UTF-8 형식의 문자로 변환하는 것임.
+				//효율적인 처리를위해, 거기에 버퍼스트림 연결하여 처리.
+				// 파일로부터 읽어들인 바이트 데이터-> 문자스트림으로 변환(utf-8로 인코딩해서) -> 버퍼링해서 -> Scanner 객체에게 전달.
 
 				// 파일이 잘 읽어들여졌다면
 				while (reader.hasNext()) {
@@ -205,6 +208,9 @@ public class ScoreServerGUI extends JFrame {
 				printDisplay("데이터 파일 불러오기");// 데이터 파일 불러오는 처리가 끝났음을 알림.
 			} catch (FileNotFoundException e) { // 해당 파일이 존재하지않는다면
 				System.err.println("데이터 파일이 없습니다: " + e.getMessage());
+				System.exit(-1);
+			} catch (UnsupportedEncodingException e) {//인코딩과정에서 발생하는 예외처리
+				System.err.println("파일의 인코딩 형식을 확인하세요: " + e.getMessage());
 				System.exit(-1);
 			}
 
