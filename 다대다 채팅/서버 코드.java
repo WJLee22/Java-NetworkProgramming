@@ -4,13 +4,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -28,17 +27,14 @@ public class MultiChatServer extends JFrame {
 	private int port;
 	private ServerSocket serverSocket;
 	private Thread acceptThread=null;
-	private Vector<ClientHandler>users=new Vector<ClientHandler>();
+	private Vector<ClientHandler>users=new Vector<ClientHandler>(); //현재 서버에 접속한 클라이언트들을 저장해두는 Vector객체.
 	private JTextArea t_display;
 	private JButton b_connect;
 	private JButton b_disconnect;
 	private JButton b_exit;
-	private JTextField t_input;
-	private JButton b_send;
 	
-	
-	private BufferedReader in; 
-	private BufferedWriter out;
+	//private BufferedReader in; 
+	//private BufferedWriter out;
 
 	
 	public MultiChatServer(int port) {
@@ -57,16 +53,22 @@ public class MultiChatServer extends JFrame {
 
 	private void startServer() {
 		Socket clientSocket = null;
+		InetAddress inetAddress = null;
+		
 		try {
 			serverSocket = new ServerSocket(port);// 해당 포트와 연결된 서버소켓 객체 생성.
-			printDisplay("서버가 시작되었습니다.");
+			inetAddress= InetAddress.getLocalHost();
+			printDisplay("서버가 시작되었습니다: " + inetAddress.getHostAddress());
 
 			while (acceptThread == Thread.currentThread()) {//현재 acceptThread값이 null값이거나, 다른 스레드가 생성되어서 현재 스레드가 더 이상 이 while문 처리할 필요가 없음.
 				clientSocket = serverSocket.accept(); // 클라이언트측 소켓이 이 서버소켓에게 연결 요청을 보냈고 -> 이를 서버소켓이 수락하면서 해당 클라이언트측 소켓과
 														// 연결할 별도의 소켓을 생성-반환.
-				printDisplay("클라이언트가 연결되었습니다.");
+				
+				String cAddress = clientSocket.getInetAddress().getHostAddress();
+				printDisplay("클라이언트가 연결되었습니다: " +cAddress);
 
 				ClientHandler cHandler = new ClientHandler(clientSocket);
+				users.add(cHandler); //새로 연결된 클라이언트를 사용자로써 사용자벡터에 추가.
 				cHandler.start();
 			}
 
@@ -97,7 +99,7 @@ public class MultiChatServer extends JFrame {
 			acceptThread=null;		
 			serverSocket.close();
 
-			b_send.setEnabled(false);
+			//b_send.setEnabled(false);
 			b_connect.setEnabled(true);
 			b_exit.setEnabled(true);
 			b_disconnect.setEnabled(false);
@@ -122,48 +124,44 @@ public class MultiChatServer extends JFrame {
 	private void buildGUI() {
 
 		add(createDisplayPanel(), BorderLayout.CENTER);
-		
-		JPanel p_input = new JPanel(new GridLayout(2, 1));
-		p_input.add(createInputPanel());
-		p_input.add(createControlPanel());
-		add(p_input, BorderLayout.SOUTH);
+		add(createControlPanel(), BorderLayout.SOUTH);
 	}
 
 	
-	// input 패널
-	private JPanel createInputPanel() {
-		JPanel inputPanel = new JPanel(new BorderLayout());
-		t_input = new JTextField(30);
-		b_send = new JButton("보내기");
-		b_send.setEnabled(false);
-
-		t_input.addKeyListener(new KeyAdapter() {
-
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-					sendMesssage();// 텍스트필드에 엔터 입력시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-					//receiveMessage(); // 내가 메시지를 보내야지만 내가 메시지를 받을수있게됨. 이것이 한계.
-				}
-			}
-
-		});
-
-		b_send.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-
-				sendMesssage();// 보내기 버튼 클릭시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
-				//receiveMessage();  // 내가 메시지를 보내야지만 내가 메시지를 받을수있게됨. 이것이 한계.
-			}
-		});
-
-		inputPanel.add(t_input, BorderLayout.CENTER);
-		inputPanel.add(b_send, BorderLayout.EAST);
-
-		return inputPanel;
-	}
+//	// input 패널
+//	private JPanel createInputPanel() {
+//		JPanel inputPanel = new JPanel(new BorderLayout());
+//		t_input = new JTextField(30);
+//		b_send = new JButton("보내기");
+//		b_send.setEnabled(false);
+//
+//		t_input.addKeyListener(new KeyAdapter() {
+//
+//			@Override
+//			public void keyPressed(KeyEvent e) {
+//				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+//					sendMesssage();// 텍스트필드에 엔터 입력시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
+//					//receiveMessage(); // 내가 메시지를 보내야지만 내가 메시지를 받을수있게됨. 이것이 한계.
+//				}
+//			}
+//
+//		});
+//
+//		b_send.addActionListener(new ActionListener() {
+//
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//
+//				sendMesssage();// 보내기 버튼 클릭시, sendMesssage 호출하여 텍스트필드에 입력한 문자열을 서버측 소켓으로전송
+//				//receiveMessage();  // 내가 메시지를 보내야지만 내가 메시지를 받을수있게됨. 이것이 한계.
+//			}
+//		});
+//
+//		inputPanel.add(t_input, BorderLayout.CENTER);
+//		inputPanel.add(b_send, BorderLayout.EAST);
+//
+//		return inputPanel;
+//	}
 	
 	
 	// 디스플레이 패널
@@ -247,70 +245,96 @@ public class MultiChatServer extends JFrame {
 	}
 	
 
-	private void sendMesssage() {
-
-		String msg = t_input.getText();
-
-		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
-			return;
-
-		
-			try {
-				((BufferedWriter)out).write(msg+"\n");
-				out.flush();
-			} catch (IOException e) {
-				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
-				System.exit(-1);
-			} 
-		
-			t_display.append("나: " + msg + "\n"); 
-			t_input.setText("");
-			
-			
-	}
+//	private void sendMesssage() {
+//
+//		String msg = t_input.getText();
+//
+//		if (msg.equals(""))// 아무것도 입력하지않고 보내려고한다면 그냥 return.
+//			return;
+//
+//		
+//			try {
+//				((BufferedWriter)out).write(msg+"\n");
+//				out.flush();
+//			} catch (IOException e) {
+//				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
+//				System.exit(-1);
+//			} 
+//		
+//			t_display.append("나: " + msg + "\n"); 
+//			t_input.setText("");
+//			
+//			
+//	}
 	
 	private class ClientHandler extends Thread{
 		private Socket clientSocket; 
+		private BufferedWriter out; //이 ClientHandler작업 스레드마다 특정 클라이언트에 별도로 출력하도록, ClientHandler 내부로 out 스트림객체 이동시킴.
+		private String uid;
 		
 		public ClientHandler(Socket clientSocket) {
 			this.clientSocket=clientSocket; 
-			
-			t_input.setEnabled(true);
-			b_send.setEnabled(true);
+		
 		}
 		// 클라이언트측으로부터 지속적으로 데이터를 전달받는 메서드
 		private void receiveMessages(Socket cSocket) {
 
-			/* BufferedReader in; */
-			/* BufferedWriter out; */
+
 			try {
-				in = new BufferedReader(new InputStreamReader(cSocket.getInputStream(), "UTF-8"));
+				BufferedReader in = new BufferedReader(new InputStreamReader(cSocket.getInputStream(), "UTF-8"));
 				out = new BufferedWriter(new OutputStreamWriter(cSocket.getOutputStream(), "UTF-8"));
 				String message;
 				
-				while ((message = in.readLine()) != null) {
+				while ((message = in.readLine()) != null) { //상대 클라이언트로부터 연결이 끊어지지 않는 한 계속해서 메시지를 수신.
+					if(message.contains("/uid:")) { //사용자 아이디 메시지라면
+						String token []= message.split(":");
+						uid=token[1]; // : 다음의 문자열을 추출하여 uid에 저장.
+						printDisplay("새 참가자: "+uid);
+						printDisplay("현재 참가자 수: "+users.size());
+						continue;
+					}
+					message = uid + ": " + message; //일반 메시지라면
+					printDisplay(message);
+					broadcating(message); //현재 서버에 접속한 모든 클라이언트에게 메시지 전송.
+					
+				}				
+				
+				users.remove(this); //연결이 끊은 클라이언트를 사용자벡터에서 제거.
+				printDisplay(uid+" 퇴장. 현재 참가자 수 : " + users.size());
 
-					printDisplay("클라이언트 메시지: " + message);
-//					out.write("'" + message + "' ... echo\n"); // 클라이언트에게 수신받은 데이터를 가공해서, 다시 클라이언트에게 반향.
-//					out.flush(); 
-				}
-				t_display.append("클라이언트가 연결을 종료했습니다.\n");
-
-			} catch (IOException e) {
-				System.err.println("서버 읽기 오류> " + e.getMessage());
-				// System.exit(-1);
+			} catch (IOException e) { //의도적으로, 정상적으로 연결을 끊은 경우가 아니라 연결상태 불량으로 인한 연결 끊김인 경우.
+				users.remove(this);
+				printDisplay(uid+" 연결 끊김. 현재 참가자 수 : " + users.size());
 			} finally {
 						
 				try {
 					cSocket.close(); 
 				} catch (IOException e) {
 
-					System.err.println("서버 읽기 오류> " + e.getMessage());
+					System.err.println("서버 닫기 오류> " + e.getMessage());
 					System.exit(-1);
 
 				}
 			}
 		}
+		
+		private void sendMesssage(String msg) { //특정 클라이언트에게 메시지를 보내는 메서드인 sendMesssage를 작업스레드 내부로 이동시킴.
+		
+					try {
+						((BufferedWriter)out).write(msg+"\n");
+						out.flush();
+					} catch (IOException e) {
+						System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
+					} 
+				
+			}
+		
+			private void broadcating(String msg) { //현재 서버에 접속한 모든 클라이언트에게 메시지를 보내는 메서드.=> 이것이 다자간 채팅의 핵심.
+				for (ClientHandler client : users) {
+					client.sendMesssage(msg);
+				}
+			}
+		
 		@Override
 		public void run() { 
 			receiveMessages(clientSocket);
