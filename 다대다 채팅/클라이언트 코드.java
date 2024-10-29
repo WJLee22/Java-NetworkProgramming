@@ -16,7 +16,9 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
 import javax.swing.JButton;
@@ -125,8 +127,8 @@ public class MultiTalk extends JFrame {
 		JLabel l_hostAddr= new JLabel("서버주소: ");
 		JLabel l_portNum= new JLabel("포트번호: ");
 		
-		t_userID= new JTextField(7);
-		t_hostAddr= new JTextField(15);
+		t_userID= new JTextField(8);
+		t_hostAddr= new JTextField(13);
 		t_portNum= new JTextField(5);
 		
 		
@@ -141,6 +143,7 @@ public class MultiTalk extends JFrame {
 		
 		t_hostAddr.setText(serverAddress);
 		t_portNum.setText(Integer.toString(serverPort));
+		t_portNum.setHorizontalAlignment(JTextField.CENTER);
 		
 		
 		infoPanel.add(l_userID);
@@ -166,12 +169,32 @@ public class MultiTalk extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				connectToServer(); // 접속하기버튼 클릭시 서버에 접속요청.
-				b_send.setEnabled(true);
+				
+				serverAddress=t_hostAddr.getText(); //접속버튼 클릭시 텍스트필드에 입력된 값으로 서버주소와 포트번호 설정.
+				serverPort=Integer.parseInt(t_portNum.getText());
+				
+				try {
+					connectToServer(); // 접속하기버튼 클릭시 서버에 접속요청.
+					senduserID();//서버 접속후, 서버에게 사용자 아이디값 전송. 서버가 이 아이디값을통해 클라이언트를 식별.
+				} catch (UnknownHostException e1) {//connectToServer에서 throw한 예외처리를 여기서 예외처리.
+					printDisplay("서버 주소와 포트번호를 확인하세요: " +e1.getMessage());
+					return; //예외발생시 버튼객체들 상태변경 없이 그대로 유지하기위해 그냥 반환. 이후 코드진행x.
+				} catch (IOException e2) {
+					printDisplay("서버와의 연결 오류: " +e2.getMessage());
+					return;
+				}
+				
+
+				t_userID.setEditable(false);
+				t_hostAddr.setEditable(false);
+				t_portNum.setEditable(false);
+				
 				b_connect.setEnabled(false);
-				b_exit.setEnabled(false);
 				b_disconnect.setEnabled(true);
 				t_input.setEnabled(true);
+				b_send.setEnabled(true);
+				b_exit.setEnabled(false);
+
 
 			}
 		});
@@ -206,7 +229,8 @@ public class MultiTalk extends JFrame {
 	}
 	
 	private void printDisplay(String msg) {
-		
+		t_display.append(msg + "\n");
+		t_display.setCaretPosition(t_display.getDocument().getLength()); //자동스크롤 처리.
 		
 	}
 	
@@ -214,10 +238,14 @@ public class MultiTalk extends JFrame {
 //		
 //	}
 	
-	private void connectToServer()  {
+	private void connectToServer() throws UnknownHostException, IOException{//3초 타임아웃후 접속 실패시 다른 주소로 입력만 받으면 되기때문에, 버튼 true false 그대로 유지하면서 서버주소-포트번호만 변경할 수 있도록 예외처리 throw. 
 
-		try {
-			socket = new Socket(serverAddress, serverPort);
+//		try {
+//			socket = new Socket(serverAddress, serverPort);
+			socket= new Socket();  
+			SocketAddress address = new InetSocketAddress(serverAddress,serverPort); //사용자가 입력한 서버주소와 포트번호의 서버에 연결.
+			socket.connect(address, 3000); //해당 서버에 연결요청을 3초동안만 진행. 3초가 지나면 연결실패-> 이후에 다른 연결 요청을 받을수있도록.
+			
 			out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF-8")); 
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
 			
@@ -234,12 +262,12 @@ public class MultiTalk extends JFrame {
 			});
 			receiveThread.start();
 
-		} catch (UnknownHostException e) { 
-			System.err.println("알 수 없는 서버> " + e.getMessage());
-		} 
-		catch (IOException e) {
-			System.err.println("클라이언트 연결 오류> " + e.getMessage());
-		}
+//		} catch (UnknownHostException e) { 
+//			System.err.println("알 수 없는 서버> " + e.getMessage());
+//		} 
+//		catch (IOException e) {
+//			System.err.println("클라이언트 연결 오류> " + e.getMessage());
+//		}
 
 	}
 
@@ -259,7 +287,7 @@ public class MultiTalk extends JFrame {
 
 	}
 
-	private void sendMesssage() {
+	private void sendMesssage() { //senduserID 랑 중복되는 부분이 존재. 가능하면 병합 해보자.
 
 		String msg = t_input.getText();
 
@@ -271,7 +299,7 @@ public class MultiTalk extends JFrame {
 				((BufferedWriter)out).write(msg+"\n");
 				out.flush();
 				
-				t_display.append("나: " + msg + "\n"); 
+				//t_display.append("나: " + msg + "\n"); 
 			} catch (IOException e) {
 				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
 				System.exit(-1);
@@ -284,8 +312,16 @@ public class MultiTalk extends JFrame {
 	}
 	
 	private void senduserID() {
+		String uid=t_userID.getText();
+		try {
+			((BufferedWriter) out).write("/uid:"+ uid + "\n");//사용자 아이디를 제어문자열 '/'을 추가해서 전송.
+			out.flush();
+		} catch (IOException e) {
+			System.err.println("클라이언트 사용자아이디 전송 오류> " + e.getMessage());
+			System.exit(-1);
+		}
 		
-		
+		t_input.setText("");
 	}
 	
 	//클라이언트가 서버에게 메시지를 보내고나서, 서버가 나에게 반향하는 메시지를 수신.
@@ -293,7 +329,14 @@ public class MultiTalk extends JFrame {
 		
 		try {
 			String inMsg=((BufferedReader)in).readLine();
-			t_display.append("서버:\t"+inMsg+"\n");
+			
+			if(inMsg==null) {//서버측에서 소켓연결을 종료하여 스트림이 닫힌경우.
+                printDisplay("서버로부터 연결이 끊어짐");
+                disconnect();
+                return;
+			}
+			//t_display.append("서버:\t"+inMsg+"\n");
+			printDisplay(inMsg); //서버로부터 전달받은 데이터를 화면에 출력.
 		} catch (IOException e) {
 			System.err.println("클라이언트 일반 수신 오류> " + e.getMessage());
 		}
