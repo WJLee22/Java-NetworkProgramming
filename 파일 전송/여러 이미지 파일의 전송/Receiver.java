@@ -179,7 +179,7 @@ public class ImgReceiver extends JFrame {
 				while(true) { //하나의 파일이름을 수신받고 - 파일크기를 수신받고 - 파일데이터를 수신받고 - 다시 파일이름을 수신받고... 하나의 파일만을 전송받는게 아니라 여러 파일을 전송받는 프로그램이므로 무한루프를 돌면서 계속 수신. 
 				String fileName = in.readUTF(); //바이트스트림이지만 유니코드 형식으로 파일명 문자열을 전달받음. sender 로부터 받는 첫번째 메시지는 파일 이름이다.
 				
-				Long size = (Long)in.readLong(); //sender로부터 받는 두번째 메시지는 파일의 크기.
+				long size = (long)in.readLong(); //sender로부터 받는 두번째 메시지는 파일의 크기.
 				
 				File file = new File(fileName); //전달받은 파일 이름으로 파일객체 생성. 파일 객체만 생성할뿐 실제 파일은 생성되지 않음.
 				
