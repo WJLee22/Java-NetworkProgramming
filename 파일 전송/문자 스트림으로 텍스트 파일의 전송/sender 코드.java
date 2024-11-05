@@ -132,6 +132,8 @@ public class TextFileSender extends JFrame {
 			// 즉, 연결을 끊고 다시 연결을 요청해야 out 스트림이 다시 생성됨. 
 			// 왜 이런 제약조건을 만든거지? -> 클라이언트입장에서, 보낸내용이 끝났다라는것을 서버가 알아들을수있도록 하는방법이 기존에코서버에서는 없었음.
 			// 이를 보완하기위해 이런 제약을 둔것임. 일단 임시로.
+			t_display.append(">> 전송을 완료했습니다: " + filename + "\n"));
+			t_input.setText("");
 		} catch (UnsupportedEncodingException e) { //지원되지않는 인코딩인경우
 			t_display.append(">> 인코딩 형식을 알 수 없습니다: " + e.getMessage() + "\n");
 			return;
@@ -142,7 +144,14 @@ public class TextFileSender extends JFrame {
 		catch (IOException e) {
 			t_display.append(">> 파일을 읽을 수 없습니다: " + e.getMessage() + "\n");
 			return;
-		}
+		} finally {
+            try {
+                if(br!=null) br.close(); //파일스트림을 닫음.
+            } catch (IOException e) {
+            	printDisplay(">> 파일을 닫을 수 없습니다: " + e.getMessage());
+            	return;
+            }
+        }
 	}
 	
 	//클라이언트가 서버에게 메시지를 보내고나서, 서버가 나에게 반향하는 메시지를 수신.
