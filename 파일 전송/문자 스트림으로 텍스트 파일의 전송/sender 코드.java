@@ -108,7 +108,9 @@ public class TextFileSender extends JFrame {
 		String filename = t_input.getText().strip(); //앞뒤 공백제거.->공백으로인한 에러방지.
 		if(filename.isEmpty()) return;
 		
-		File file = new File(filename); //입력받은 파일명의 파일을 파일객체로써 표현. 생성.
+		File file = new File(filename); //입력받은 파일명의 파일을 파일객체로써 표현. 
+		//파일 입출력은 아니고, 그저 파일에 대한 정보를 유지할 수 있는 객체.
+		
 		if(!file.exists()) { //파일이 존재하지않는다면
 			t_display.append(">> 파일이 존재하지 않습니다: " + filename + "\n");
 			return;
