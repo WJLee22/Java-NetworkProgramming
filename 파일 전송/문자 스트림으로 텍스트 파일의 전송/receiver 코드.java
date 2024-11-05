@@ -143,8 +143,9 @@ public class TextFileReceiver extends JFrame {
 				//BufferedWriter out= new BufferedWriter(new OutputStreamWriter(cSocket.getOutputStream(), "UTF-8"));
 				
 				String fileName = in.readLine(); //sender 로부터 받는 첫번째 메시지는 파일 이름이다.
-				File file = new File(fileName); //전달받은 파일 이름으로 파일객체 생성.
-				PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file),"UTF-8"));
+				File file = new File(fileName); //전달받은 파일 이름으로 파일객체 생성. 파일 객체만 생성할뿐 실제 파일은 생성되지 않음.
+				PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file),"UTF-8"),true); //true, 오토 플러쉬 안해주면 파일에 데이터가 write 되지않음. 꼭 써줘야함.
+				//이 부분이 실행될 때 FileOutputStream이 file 객체를 이용하여 파일을 열려고 시도. 이때 해당파일이 존재하지 않으면 새로운 파일을 생성하고, 파일이 이미 존재하면 해당 파일을 덮어씀.
 				
 				String line;
 				
