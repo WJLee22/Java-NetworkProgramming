@@ -25,7 +25,7 @@ public class ChatMsg implements Serializable{
 	}
 	
 	public ChatMsg(String UserID, int code, String message, ImageIcon image) {
-		this(UserID, code, message, null, 0);
+		this(UserID, code, message, image, 0);
 	}
 	
 	public ChatMsg(String userID, int code) {
