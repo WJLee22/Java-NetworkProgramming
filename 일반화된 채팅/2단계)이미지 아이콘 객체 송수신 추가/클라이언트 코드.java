@@ -296,7 +296,7 @@ public class WithTalk extends JFrame {
 				private void receiveMessage() {
 					
 					try {
-						ChatMsg inMsg = (ChatMsg) in.readObject(); // 서버로부터 채팅 메시지 전달받음.
+						ChatMsg inMsg = (ChatMsg)in.readObject(); // 서버로부터 채팅 메시지 전달받음.
 						
 						if(inMsg==null) {//서버측에서 소켓연결을 종료하여 스트림이 닫힌경우.
 							disconnect();
