@@ -289,7 +289,7 @@ public class WithChatServer extends JFrame {
 			try {
 				ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(cSocket.getInputStream())); //in 은 이 메서드 내에서만 활용하니깐.
 				out = new ObjectOutputStream(new BufferedOutputStream(cSocket.getOutputStream()));
-				bis = new BufferedInputStream(cSocket.getInputStream()); //파일데이터를 읽어들이기위한 입력스트림
+				bis = new BufferedInputStream(cSocket.getInputStream()); //파일데이터를 읽어들이기 위한 입력스트림
 				bos= new BufferedOutputStream(cSocket.getOutputStream()); //파일전송을 위한 출력스트림
 				String message;
 				ChatMsg msg;
@@ -309,15 +309,16 @@ public class WithChatServer extends JFrame {
 					} else if (msg.mode == ChatMsg.MODE_TX_STRING) { // 일반 메시지라면
 						message = uid + ": " + msg.message;
 						printDisplay(message);
-						broadcating(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.
+						broadcasting(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.
 					}else if (msg.mode == ChatMsg.MODE_TX_IMAGE) { // 이미지 메시지라면
 						message = uid + ": " + msg.message;
 						printDisplay(message);
-						broadcating(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.
+						broadcasting(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.
 					} else if (msg.mode == ChatMsg.MODE_TX_FILE) { // 파일 메시지라면
 						message = uid + ": " + msg.message;
 						printDisplay(message);
-						broadcatingOthers(msg, msg.size); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.(※현재 연결중인 클라이언트 제외.)
+						printDisplay(Long.toString(msg.size));
+						broadcastingOthers(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.(※현재 연결중인 클라이언트 제외.)
 					}
 //					
 //					message = uid + ": " + message; //일반 메시지라면
@@ -354,6 +355,7 @@ public class WithChatServer extends JFrame {
 			try {
 				out.writeObject(msg);
 				out.flush();
+				printDisplay("메시지 전송 완료: " + msg.message);
 			} catch (IOException e) {
 				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
 			}
@@ -371,33 +373,37 @@ public class WithChatServer extends JFrame {
 			    send(new ChatMsg(uid, ChatMsg.MODE_TX_STRING, msg));
 			}
 		
-			private void broadcating(ChatMsg msg) { //현재 서버에 접속한 모든 클라이언트에게 메시지를 보내는 메서드.=> 이것이 다자간 채팅의 핵심.
+			private void broadcasting(ChatMsg msg) { //현재 서버에 접속한 모든 클라이언트에게 메시지를 보내는 메서드.=> 이것이 다자간 채팅의 핵심.
 				for (ClientHandler client : users) {
 					client.send(msg);
 				}
 			}
 			
-			private void broadcatingOthers(ChatMsg msg, long fileSize) { //현재 이 클라이언트 헨들러 객체가 연결중인 클라이언트를 제외한 나머지 클라이언트들에게 브로드케스팅.
+			private void broadcastingOthers(ChatMsg msg) { //현재 이 클라이언트 헨들러 객체가 연결중인 클라이언트를 제외한 나머지 클라이언트들에게 브로드케스팅.
 				for (ClientHandler client : users) {
-					if(client == this) continue; //현재 클라이언트는 제외.
+					if(client == this) { 
+						client.send(new ChatMsg(uid, ChatMsg.MODE_TX_STRING, "client == this"));
+						continue;
+						}; //현재 클라이언트는 제외.
 					client.send(msg);
-					client.redirectStream(client.bis, fileSize); //client.bis는 각 클라이언트의 버퍼 입력 스트림.
+					client.redirectStream(this.bis, msg.size); //this.bis는 현재 클라이언트의 버퍼 입력 스트림.
 				}
 			}
-			
+			// 여기가 문제.
 			private void redirectStream(BufferedInputStream bis, long fileSize) { //파일을 전송받은 클라이언트가 다시 파일을 전송하는 메서드.
-
+				printDisplay(Long.toString(fileSize)+"파일사이즈");
 				byte[] buffer = new byte[1024];
 				int nRead;
 
 				try {
 
-					while (fileSize > 0) {
-						nRead = bis.read(buffer);
+					while (fileSize > 0 && (nRead = bis.read(buffer)) != -1) {
 						bos.write(buffer, 0, nRead);
 						fileSize -= nRead;
+						printDisplay(Long.toString(fileSize));
 						bos.flush();
 					}
+					
 				} catch (IOException e) {
 					System.err.println("파일 전송 오류> " + e.getMessage());
 				}
