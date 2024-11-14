@@ -288,7 +288,7 @@ public class WithTalk extends JFrame {
 			//socket= new Socket(serverAddress,serverPort); 
 			
 			out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream())); 
-
+			bos = new BufferedOutputStream(socket.getOutputStream());
 			receiveThread = new Thread(new Runnable() {
 				private BufferedInputStream bis; 
 				private ObjectInputStream in; 
@@ -296,7 +296,7 @@ public class WithTalk extends JFrame {
 				
 				//클라이언트가 서버에게 메시지를 보내고나서, 서버가 나에게 반향하는 메시지를 수신.
 				private void receiveMessage() {
-
+					
 					try {
 						bis = new BufferedInputStream(socket.getInputStream());//서버로부터 전달받은 파일 데이터를 읽어들일 입력스트림.
 						ChatMsg inMsg = (ChatMsg)in.readObject(); // 서버로부터 채팅 메시지 전달받음.
@@ -318,6 +318,7 @@ public class WithTalk extends JFrame {
 							break;
 							
 	                    case ChatMsg.MODE_TX_FILE:
+	                    	printDisplay("파일수신 테스트중");
 	                        printDisplay(inMsg.userID + ": " + inMsg.message);
 	                        
 	        				byte[] buffer = new byte[1024];
@@ -339,6 +340,7 @@ public class WithTalk extends JFrame {
 						}
 					} catch (IOException e) {
 						printDisplay("연결을 종료했습니다.");
+
 					} catch (ClassNotFoundException e) {
 						printDisplay("잘못된 객체가 전달되었습니다.");
 					}
@@ -369,6 +371,7 @@ public class WithTalk extends JFrame {
 		send(new ChatMsg(uid, ChatMsg.MODE_LOGOUT));
 		try {
 			receiveThread=null; //이전에는 수신스레드와 클라이언트 소켓을 
+			
 			socket.close(); //소켓 연결을 강제로 종료해서 
 			
 		} catch (IOException e) {
@@ -445,6 +448,7 @@ public class WithTalk extends JFrame {
 	        printDisplay(">> 파일이 존재하지 않습니다: " + filename);
 	        return;
 	    }
+
 //		try {
 //			bos = new BufferedOutputStream(new FileOutputStream(file));
 //		} catch (FileNotFoundException e) {//파일이 존재하지않는다면
@@ -453,11 +457,11 @@ public class WithTalk extends JFrame {
 //		}
 
 		
-//		BufferedInputStream bis=null;
+		BufferedInputStream bis=null;
 		try {
 	
-			BufferedInputStream bis=new BufferedInputStream(new FileInputStream(file));
-			bos = new BufferedOutputStream(socket.getOutputStream());
+			bis=new BufferedInputStream(new FileInputStream(file));
+			
 			send(new ChatMsg(uid, ChatMsg.MODE_TX_FILE, file.getName(), file.length())); //파일 전달 모드. 파일 크기도 전달.
 			
 				byte[] buffer = new byte[1024]; //한 블럭에 대한 1KB크기의 바이트 배열을 만들어놓고.
@@ -468,7 +472,7 @@ public class WithTalk extends JFrame {
 					// 파일이 딱 1024의 배수만큼의 크기가 아닐수도 있기때문에, 파일의 마지막 블럭의 경우 1024 바이트 만큼의 크기가 아닐수있으므로, nRead를 사용하여 실제로 읽어들인 바이트 수만큼만 출력스트림에 쓰도록함.
 				}
 				bos.flush(); 
-				bis.close(); // 파일 입력 스트림 닫기
+				//bis.close(); // 파일 입력 스트림 닫기
 	}
 			catch (IOException e) {
 				printDisplay(">> 파일을 읽을 수 없습니다: " + e.getMessage());
@@ -480,6 +484,7 @@ public class WithTalk extends JFrame {
 		t_input.setText("");
 		ImageIcon icon = new ImageIcon(filename);
 		printDisplay(icon);
+		
 		}
 	
 	
