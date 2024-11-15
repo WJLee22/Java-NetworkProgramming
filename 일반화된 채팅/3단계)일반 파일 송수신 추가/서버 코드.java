@@ -317,7 +317,7 @@ public class WithChatServer extends JFrame {
 					} else if (msg.mode == ChatMsg.MODE_TX_FILE) { // 파일 메시지라면
 						message = uid + ": " + msg.message;
 						printDisplay(message);
-						printDisplay(Long.toString(msg.size));
+						//printDisplay(Long.toString(msg.size));
 						broadcastingOthers(msg); // 전달받은 메시지 객체를 그대로 현재 서버에 접속한 모든 클라이언트에게 메시지 전송.(※현재 연결중인 클라이언트 제외.)
 					}
 //					
@@ -355,7 +355,7 @@ public class WithChatServer extends JFrame {
 			try {
 				out.writeObject(msg);
 				out.flush();
-				printDisplay("메시지 전송 완료: " + msg.message);
+				//printDisplay("메시지 전송 완료: " + msg.message);
 			} catch (IOException e) {
 				System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
 			}
@@ -382,7 +382,7 @@ public class WithChatServer extends JFrame {
 			private void broadcastingOthers(ChatMsg msg) { //현재 이 클라이언트 헨들러 객체가 연결중인 클라이언트를 제외한 나머지 클라이언트들에게 브로드케스팅.
 				for (ClientHandler client : users) {
 					if(client == this) { 
-						client.send(new ChatMsg(uid, ChatMsg.MODE_TX_STRING, "client == this"));
+						//client.send(new ChatMsg(uid, ChatMsg.MODE_TX_STRING, "client == this"));
 						continue;
 						}; //현재 클라이언트는 제외.
 					client.send(msg);
@@ -396,7 +396,7 @@ public class WithChatServer extends JFrame {
 				int nRead;
 
 				try {
-
+					
 					while (fileSize > 0 && (nRead = bis.read(buffer)) != -1) {
 						bos.write(buffer, 0, nRead);
 						fileSize -= nRead;
