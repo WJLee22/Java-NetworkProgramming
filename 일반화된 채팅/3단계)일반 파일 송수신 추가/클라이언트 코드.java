@@ -308,14 +308,22 @@ public class WithTalk extends JFrame {
 						}
 						
 						switch(inMsg.mode) { //수신된 메시지의 모드값에 따라 다른 처리.
-						case ChatMsg.MODE_TX_STRING: //문자열을 전달받는 모드라면, 서버로부터 전달받은 id 와 문자열 메시지를 화면에 출력.
-							printDisplay(inMsg.userID + ": " + inMsg.message);
-							break;
+			            case ChatMsg.MODE_TX_STRING:
+			                if (inMsg.userID.equals(uid)) {
+			                    printDisplay("나: " + inMsg.message);
+			                } else {
+			                    printDisplay(inMsg.userID + ": " + inMsg.message);
+			                }
+			                break;
 							
 						case ChatMsg.MODE_TX_IMAGE:
-							printDisplay(inMsg.userID +": " + inMsg.message);
-							printDisplay(inMsg.image);
-							break;
+			                if (inMsg.userID.equals(uid)) {
+			                    printDisplay("나: " + inMsg.message);
+			                } else {
+			                    printDisplay(inMsg.userID + ": " + inMsg.message);
+			                }
+			                printDisplay(inMsg.image);
+			                break;
 							
 	                    case ChatMsg.MODE_TX_FILE:
 	                    	printDisplay("파일수신 테스트중");
@@ -463,7 +471,8 @@ public class WithTalk extends JFrame {
 			bis=new BufferedInputStream(new FileInputStream(file));
 			
 			send(new ChatMsg(uid, ChatMsg.MODE_TX_FILE, file.getName(), file.length())); //파일 전달 모드. 파일 크기도 전달.
-			
+			printDisplay("나: " + file.getName() + " (파일)"); // 전송한 파일명 출력
+
 				byte[] buffer = new byte[1024]; //한 블럭에 대한 1KB크기의 바이트 배열을 만들어놓고.
 				int nRead;
 				while((nRead = bis.read(buffer)) != -1) //bis스트림이 연결된 파일로부터 buffer 크기만큼의 데이터를 buffer 배열로 읽어들임.즉 1KB씩 읽어들임. 파일의끝에 도달해서 더이상 읽을 데이터가 없을떄까지.
