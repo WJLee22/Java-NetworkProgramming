@@ -335,7 +335,7 @@ public class WithTalk extends JFrame {
 
 					case ChatMsg.MODE_TX_FILE:
 						// printDisplay(inMsg.userID +": " + inMsg.message);
-						printDisplay(inMsg.userID + "사용자로부터 " + "<"+inMsg.message+">" + "파일을 수신했습니다.");
+						printDisplay(inMsg.userID + "사용자로부터 " + "< "+inMsg.message+" >" + "파일을 수신했습니다.");
 
 						byte[] buffer = inMsg.fileData; // 전달받은 파일데이터를 담아둘 버퍼
 						long size = inMsg.size; // 전달받은 파일의 크기.
