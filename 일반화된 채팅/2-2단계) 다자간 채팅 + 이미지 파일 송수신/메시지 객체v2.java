@@ -16,7 +16,7 @@ public class ChatMsg implements Serializable{
 	ImageIcon image;
 	long size;
 	byte[] fileData; //파일 데이터를 담는 바이트 배열.
-	
+	// 모든 필드 초기화 생성자
 	public ChatMsg(String userID, int code, String message, ImageIcon image, long size, byte[] fileData) {
 		this.userID = userID;
 		this.mode = code;
@@ -25,31 +25,22 @@ public class ChatMsg implements Serializable{
 		this.size = size;
 		this.fileData = fileData; //파일데이터 초기화
 	}
+	// 파일 전송용 생성자
     public ChatMsg(String userID, int mode, String message, long size, byte[] fileData) {
         this(userID, mode, message, null, size, fileData);
     }
-	public ChatMsg(String UserID, int code, String message, ImageIcon image, long size) {
-		this(UserID, code, message, image, size, null);
-	}
-	
-	public ChatMsg(String userID, int code, String message, ImageIcon image) {
-		this(userID, code, null, null, 0, null);
-    }
 
+	// 이미지 전송용 생성자
+	public ChatMsg(String userID, int code, String message, ImageIcon image) {
+		this(userID, code, message, image, 0, null);
+    }
+	// 로그인, 로그아웃용 생성자
     public ChatMsg(String userID, int code) {
         this(userID, code, null, null, 0, null);
     }
-    
+    // 문자열 메시지 전송용 생성자
 	public ChatMsg(String userID, int code, String message) {
 		this(userID, code, message, null, 0, null);
-	}
-	
-	public ChatMsg(String userID, int code, ImageIcon image) {
-		this(userID, code, null, image, 0, null);
-	}
-	
-	public ChatMsg(String userID, int code, String filename,long size) {
-		this(userID, code, filename, null, size, null);
 	}
 
 }
